@@ -72,6 +72,7 @@
 #include "custompipes.h"
 #include "screendroplets.h"
 #include "MemoryHeap.h"
+#include "FixedRender.h"
 #ifdef USE_OUR_VERSIONING
 #include "GitSHA1.h"
 #endif
@@ -1559,6 +1560,37 @@ Render2dStuffAfterFade(void)
 	POP_RENDERGROUP();
 }
 
+static void
+ProcessGameFrame(void)
+{
+#ifdef FIXED_TIME_STEP
+	if(CTimer::IsFixedStepActive()){
+		unsigned steps = CTimer::GetFixedSteps();
+		if(CTimer::GetIsPaused()){
+			CFixedRender::Reset();
+			CGame::Process(); // Keep menu input and streaming alive while paused.
+		}else{
+			for(unsigned step = 0; step < steps; step++){
+				CTimer::BeginFixedStep();
+				CFixedRender::BeforeStep();
+				CPointLights::InitPerFrame();
+				CGame::Process();
+				CFixedRender::AfterStep();
+				if(CTimer::GetIsPaused() || !CTimer::IsFixedStepActive() || CReplay::IsPlayingBack() ||
+				   RsGlobal.quit || FrontEndMenuManager.m_bWantToRestart || FOUND_GAME_TO_LOAD)
+					break;
+			}
+		}
+		CTimer::EndFixedFrame();
+		CFixedRender::RestoreLights();
+		return;
+	}
+	CFixedRender::Reset();
+#endif
+	CPointLights::InitPerFrame();
+	CGame::Process();
+}
+
 void
 Idle(void *arg)
 {
@@ -1566,7 +1598,12 @@ Idle(void *arg)
 	CDraw::SetAspectRatio(CDraw::FindAspectRatio());
 #endif
 
+#ifdef FIXED_TIME_STEP
+	CFixedRenderScope renderScope;
+	CTimer::UpdateFixedFrame();
+#else
 	CTimer::Update();
+#endif
 
 	tbInit();
 
@@ -1584,9 +1621,8 @@ Idle(void *arg)
 		FrontEndMenuManager.Process();
 	} else {
 		PUSH_MEMID(MEMID_GAME_PROCESS);
-		CPointLights::InitPerFrame();
 		tbStartTimer(0, "CGame::Process");
-		CGame::Process();
+		ProcessGameFrame();
 		tbEndTimer("CGame::Process");
 		POP_MEMID();
 
@@ -1600,10 +1636,9 @@ Idle(void *arg)
 #else
 
 	PUSH_MEMID(MEMID_GAME_PROCESS);
-	CPointLights::InitPerFrame();
 
 	tbStartTimer(0, "CGame::Process");
-	CGame::Process();
+	ProcessGameFrame();
 	tbEndTimer("CGame::Process");
 	POP_MEMID();
 
@@ -1643,6 +1678,10 @@ Idle(void *arg)
 		}
 #endif
 
+#ifdef FIXED_TIME_STEP
+		if(CTimer::IsFixedStepActive() && !CTimer::GetIsPaused())
+			CFixedRender::Begin(CTimer::GetRenderAlpha());
+#endif
 		PUSH_MEMID(MEMID_RENDERLIST);
 		tbStartTimer(0, "CnstrRenderList");
 #ifdef NEW_RENDERER

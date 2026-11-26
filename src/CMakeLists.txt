@@ -42,7 +42,7 @@ target_compile_definitions(${EXECUTABLE}
         CMAKE_NO_AUTOLINK
 )
 
-if(LIBRW_PLATFORM_D3D9)
+if(LIBRW_PLATFORM STREQUAL "D3D9")
     target_compile_definitions(${EXECUTABLE}
         PUBLIC
             USE_D3D9

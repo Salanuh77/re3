@@ -5,6 +5,16 @@
 #include "DMAudio.h"
 #include "Record.h"
 #include "Timer.h"
+#ifdef FIXED_TIME_STEP
+#include "FixedStep.h"
+#include "FixedRender.h"
+#include "Replay.h"
+static CFixedStep fixedClock;
+static CFixedStepMilliseconds fixedMilliseconds;
+static bool fixedFrame, inFixedStep, samplingFixedFrame;
+static double fixedFrameSeconds;
+static float renderTimeStep, renderTimeStepNonClipped;
+#endif
 
 uint32 CTimer::m_snTimeInMilliseconds;
 uint32 CTimer::m_snTimeInMillisecondsPauseMode = 1;
@@ -39,6 +49,12 @@ uint32 suspendDepth;
 
 void CTimer::Initialise(void)
 {
+#ifdef FIXED_TIME_STEP
+	fixedClock.Reset();
+	fixedFrame = inFixedStep = samplingFixedFrame = false;
+	fixedMilliseconds.Reset();
+	CFixedRender::Reset();
+#endif
 	debug("Initialising CTimer...\n");
 	
 	ms_fTimeScale = 1.0f;
@@ -86,6 +102,13 @@ void CTimer::Shutdown(void)
 #ifdef FIX_BUGS
 void CTimer::Update(void)
 {
+#ifdef FIXED_TIME_STEP
+	// Calls from loading screens, the frontend and the animation viewer stay legacy.
+	if(!samplingFixedFrame){
+		fixedFrame = false;
+		fixedClock.Reset();
+	}
+#endif
 	static double frameTimeLogical = 0.0;
 	static double frameTimeFraction = 0.0;
 	static double frameTimeFractionScaled = 0.0;
@@ -127,6 +150,10 @@ void CTimer::Update(void)
 	}
 
 	// count frames as if we're running at 30 fps
+#ifdef FIXED_TIME_STEP
+	fixedFrameSeconds = frameTime / 1000.0;
+	if(!fixedFrame){
+#endif
 	m_LogicalFramesPassed = 0;
 	frameTimeLogical += dblUpdInMs;
 	while(frameTimeLogical >= 1000.0 / 30.0) {
@@ -134,9 +161,15 @@ void CTimer::Update(void)
 		m_LogicalFramesPassed++;
 	}
 	m_LogicalFrameCounter += m_LogicalFramesPassed;
+#ifdef FIXED_TIME_STEP
+	}
+#endif
 
 	frameTimeFraction += dblUpdInMs;
-	frameTimeFractionScaled += frameTime;
+#ifdef FIXED_TIME_STEP
+	if(!fixedFrame)
+#endif
+		frameTimeFractionScaled += frameTime;
 
 	m_snTimeInMillisecondsPauseMode += uint32(frameTimeFraction);
 															 
@@ -144,8 +177,14 @@ void CTimer::Update(void)
 		ms_fTimeStep = 0.0f;
 	else
 	{
-		m_snTimeInMilliseconds += uint32(frameTimeFractionScaled);
-		m_snTimeInMillisecondsNonClipped += uint32(frameTimeFractionScaled);
+#ifdef FIXED_TIME_STEP
+		if(!fixedFrame){
+#endif
+			m_snTimeInMilliseconds += uint32(frameTimeFractionScaled);
+			m_snTimeInMillisecondsNonClipped += uint32(frameTimeFractionScaled);
+#ifdef FIXED_TIME_STEP
+		}
+#endif
 		ms_fTimeStep = frameTime / 1000.0f * 50.0f;
 	}
 	frameTimeFraction -= uint32(frameTimeFraction);
@@ -170,7 +209,10 @@ void CTimer::Update(void)
 		m_snTimeInMilliseconds = m_snPreviousTimeInMilliseconds + 16;
 	}
   
-	m_FrameCounter++;
+#ifdef FIXED_TIME_STEP
+	if(!fixedFrame)
+#endif
+		m_FrameCounter++;
 }
 #else
 void CTimer::Update(void)
@@ -244,6 +286,54 @@ void CTimer::Update(void)
 	}
   
 	m_FrameCounter++;
+}
+#endif
+
+#ifdef FIXED_TIME_STEP
+void CTimer::UpdateFixedFrame(void)
+{
+	// Legacy recordings encode one state per update and keep their original clock.
+	fixedFrame = !CRecordDataForGame::IsPlayingBack() && !CRecordDataForGame::IsRecording() &&
+	             !CRecordDataForChase::IsRecording() && !CReplay::IsPlayingBack();
+	inFixedStep = false;
+	if(!fixedFrame)
+		fixedClock.Reset();
+	samplingFixedFrame = true;
+	Update();
+	samplingFixedFrame = false;
+	renderTimeStep = ms_fTimeStep;
+	renderTimeStepNonClipped = ms_fTimeStepNonClipped;
+}
+
+bool CTimer::IsFixedStepActive(void) { return fixedFrame; }
+bool CTimer::CanProcessSimulation(void) { return !fixedFrame || inFixedStep; }
+unsigned CTimer::GetFixedSteps(void) { return fixedClock.Advance(fixedFrameSeconds, GetIsPaused()); }
+float CTimer::GetRenderAlpha(void) { return fixedClock.Alpha(); }
+
+void CTimer::BeginFixedStep(void)
+{
+	inFixedStep = true;
+	m_snPreviousTimeInMilliseconds = m_snTimeInMilliseconds;
+	uint32 milliseconds = fixedMilliseconds.Advance();
+	m_snTimeInMilliseconds += milliseconds;
+	m_snTimeInMillisecondsNonClipped += milliseconds;
+	ms_fTimeStep = ms_fTimeStepNonClipped = float(CFixedStep::StepSeconds() * 50.0);
+	m_FrameCounter++;
+	m_LogicalFrameCounter++;
+	m_LogicalFramesPassed = 1;
+}
+
+void CTimer::EndFixedFrame(void)
+{
+	inFixedStep = false;
+	ms_fTimeStep = renderTimeStep;
+	ms_fTimeStepNonClipped = renderTimeStepNonClipped;
+	if(GetIsPaused()) fixedClock.Reset();
+	if(CReplay::IsPlayingBack()){
+		fixedFrame = false;
+		fixedClock.Reset();
+		CFixedRender::Reset();
+	}
 }
 #endif
 

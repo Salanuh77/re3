@@ -49,6 +49,15 @@ public:
 	static void Initialise(void);
 	static void Shutdown(void);
 	static void Update(void);
+#ifdef FIXED_TIME_STEP
+	static void UpdateFixedFrame(void);
+	static bool IsFixedStepActive(void);
+	static bool CanProcessSimulation(void);
+	static unsigned GetFixedSteps(void);
+	static void BeginFixedStep(void);
+	static void EndFixedFrame(void);
+	static float GetRenderAlpha(void);
+#endif
 	static void Suspend(void);
 	static void Resume(void);
 	static uint32 GetCyclesPerMillisecond(void);

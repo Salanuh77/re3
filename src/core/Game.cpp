@@ -1029,7 +1029,11 @@ void CGame::Process(void)
 	POP_MEMID();
 
 	CStreaming::Update();
-	if (!CTimer::GetIsPaused())
+	if (!CTimer::GetIsPaused()
+#ifdef FIXED_TIME_STEP
+	    && CTimer::CanProcessSimulation()
+#endif
+	)
 	{
 		CTheZones::Update();
 		CSprite2d::SetRecipNearClip();
