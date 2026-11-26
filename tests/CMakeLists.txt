@@ -5,7 +5,13 @@ add_test(NAME physics_unit COMMAND physics_tests)
 
 option(RE3_BDD_TESTS "Run Gherkin tests using Python behave" OFF)
 if(RE3_BDD_TESTS)
+    set(Python3_FIND_STRATEGY LOCATION)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    execute_process(COMMAND "${Python3_EXECUTABLE}" -c "import behave"
+        RESULT_VARIABLE RE3_BEHAVE_IMPORT_RESULT OUTPUT_QUIET ERROR_QUIET)
+    if(NOT RE3_BEHAVE_IMPORT_RESULT EQUAL 0)
+        message(FATAL_ERROR "Install tests/requirements.txt using ${Python3_EXECUTABLE}, or set Python3_EXECUTABLE to your Behave interpreter")
+    endif()
     add_test(NAME physics_gherkin COMMAND "${Python3_EXECUTABLE}" -m behave
         "${CMAKE_CURRENT_SOURCE_DIR}/features" --no-capture
         -D "physics_probe=$<TARGET_FILE:physics_tests>")
