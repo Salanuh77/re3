@@ -25,6 +25,7 @@ struct Snapshot
 
 std::vector<Snapshot> vehicles, peds, objects;
 Snapshot camera;
+CVector savedGameCamPosition;
 bool haveCamera = false;
 bool renderActive = false;
 int16 simulationLightCount;
@@ -188,7 +189,18 @@ void CFixedRender::Begin(float alpha)
 	if(Scene.camera && haveCamera){
 		RwFrame *frame = RwCameraGetFrame(Scene.camera);
 		camera.saved = *RwFrameGetMatrix(frame);
+		camera.savedEntity = TheCamera.GetMatrix();
+		savedGameCamPosition = TheCamera.m_vecGameCamPos;
 		WriteTransform(frame, CFixedTransform::Blend(camera.previous, camera.current, alpha));
+		// Camera RW axes differ from entity axes: at is forward, up is up.
+		// Keep culling, effects and the rendered view on the same interpolated pose.
+		RwMatrix *matrix = RwFrameGetMatrix(frame);
+		TheCamera.GetRight() = matrix->right;
+		TheCamera.GetForward() = matrix->at;
+		TheCamera.GetUp() = matrix->up;
+		TheCamera.GetMatrix().GetPosition() = matrix->pos;
+		TheCamera.m_vecGameCamPos = matrix->pos;
+		TheCamera.CalculateDerivedValues();
 		camera.rendered = true;
 	}
 }
@@ -202,6 +214,9 @@ void CFixedRender::End(void)
 	Render(CPools::GetObjectPool(), objects, 0.0f, true);
 	if(camera.rendered && Scene.camera){
 		RwFrame *frame = RwCameraGetFrame(Scene.camera);
+		TheCamera.GetMatrix().CopyOnlyMatrix(camera.savedEntity);
+		TheCamera.m_vecGameCamPos = savedGameCamPosition;
+		TheCamera.CalculateDerivedValues();
 		*RwFrameGetMatrix(frame) = camera.saved;
 		RwFrameUpdateObjects(frame);
 		camera.rendered = false;

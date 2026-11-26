@@ -43,3 +43,18 @@ Feature: Physics is independent of rendered frames
     When a transform at position 1000 is rendered with interpolation fraction 0.5
     Then its displayed position is 1000
     And its authoritative physics position remains 1000
+
+  Scenario Outline: Mouse-look camera axes survive engine quaternion conversion
+    When the camera looks at yaw <yaw> and pitch <pitch> degrees
+    Then the camera conversion preserves its viewing direction and horizon
+
+    Examples:
+      | yaw  | pitch |
+      | 5    | 0     |
+      | 45   | 30    |
+      | -45  | -30   |
+      | 90   | 60    |
+      | 180  | 0     |
+      | 270  | -60   |
+      | 355  | 10    |
+      | -355 | -10   |

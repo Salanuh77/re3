@@ -81,3 +81,15 @@ def physics_position(context, position):
 @then("its displayed rotation is normalized")
 def rotation_normalized(context):
     assert math.isclose(context.result["rotation_norm"], 1, abs_tol=1e-6), context.result
+
+
+@when("the camera looks at yaw {yaw:d} and pitch {pitch:d} degrees")
+def camera_look(context, yaw, pitch):
+    context.camera_result = subprocess.run(
+        [context.config.userdata["camera_probe"], str(yaw), str(pitch)],
+        capture_output=True, text=True)
+
+
+@then("the camera conversion preserves its viewing direction and horizon")
+def camera_preserved(context):
+    assert context.camera_result.returncode == 0, context.camera_result.stderr

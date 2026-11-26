@@ -40,6 +40,12 @@ quaternion normalization, interpolation endpoints and teleport handling. The
 Gherkin scenarios invoke that compiled C++ code through Behave. They do not
 require GTA game assets or a graphics device.
 
+The camera target compiles the engine's actual `src/math/Quaternion.cpp` with
+minimal RenderWare value types and math functions supplied by a test-only header.
+It sweeps yaw and pitch, checks matrix round trips, and checks that horizontal
+mouse-look interpolation preserves a level horizon. This catches conversion
+errors that quaternion-only blend tests cannot see.
+
 ## Full Windows compile
 
 Initialize dependencies with `git submodule update --init --recursive`, then run
