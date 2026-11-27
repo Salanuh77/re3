@@ -23,7 +23,7 @@ jobs:
             platform: D3D9
           - os: ubuntu-22.04
             platform: GL3
-          - os: macos-14
+          - os: macos-15
             platform: GL3
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45

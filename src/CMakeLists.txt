@@ -2,6 +2,9 @@ find_package(Threads REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 file(GLOB_RECURSE ${PROJECT}_SOURCES "*.cpp" "*.h" "*.rc")
+# Premake writes this file into the source tree. CMake generates its own copy
+# below, so switching build systems must not compile the same symbols twice.
+list(REMOVE_ITEM ${PROJECT}_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/extras/GitSHA1.cpp")
 
 function(header_directories RETURN_LIST)
     file(GLOB_RECURSE ALL_SRCS *.h *.cpp *.c)
@@ -62,6 +65,13 @@ if(${PROJECT}_AUDIO STREQUAL "OAL")
         target_compile_definitions(${EXECUTABLE} PRIVATE ${OPENAL_DEFINITIONS})
     endif()
     target_compile_definitions(${EXECUTABLE} PRIVATE AUDIO_OAL)
+    if(NINTENDO_SWITCH)
+        # devkitPro's static OpenAL uses SDL2 for audio. FindOpenAL only finds
+        # libopenal itself, so include the backend's SDK link dependencies too.
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(SWITCH_OPENAL_SDL2 REQUIRED IMPORTED_TARGET sdl2)
+        target_link_libraries(${EXECUTABLE} PRIVATE PkgConfig::SWITCH_OPENAL_SDL2)
+    endif()
 elseif(${PROJECT}_AUDIO STREQUAL "MSS")
     find_package(MilesSDK REQUIRED)
     target_compile_definitions(${EXECUTABLE} PRIVATE AUDIO_MSS)
