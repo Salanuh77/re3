@@ -534,6 +534,9 @@ bool LoadINISettings()
 #ifdef DRAW_GAME_VERSION_TEXT
 	ReadIniIfExists("General", "DrawVersionText", &gbDrawVersionText);
 #endif
+#ifdef FIXED_TIME_STEP
+	ReadIniIfExists("General", "ShowPhysicsStats", &gbShowPhysicsStats);
+#endif
 #ifdef NO_MOVIES
 	ReadIniIfExists("General", "NoMovies", &gbNoMovies);
 #endif
@@ -635,6 +638,9 @@ void SaveINISettings()
 #endif
 #ifdef DRAW_GAME_VERSION_TEXT
 	StoreIni("General", "DrawVersionText", gbDrawVersionText);
+#endif
+#ifdef FIXED_TIME_STEP
+	StoreIni("General", "ShowPhysicsStats", gbShowPhysicsStats);
 #endif
 #ifdef NO_MOVIES
 	StoreIni("General", "NoMovies", gbNoMovies);
@@ -1029,6 +1035,9 @@ extern bool gbRenderWorld2;
 		
 #ifdef DRAW_GAME_VERSION_TEXT
 		DebugMenuAddVarBool8("Debug", "Version Text", &gbDrawVersionText, nil);
+#endif
+#ifdef FIXED_TIME_STEP
+		DebugMenuAddVarBool8("Debug", "Physics telemetry", &gbShowPhysicsStats, nil);
 #endif
 		DebugMenuAddVarBool8("Debug", "Show DebugStuffInRelease", &gbDebugStuffInRelease, nil);
 #ifdef TIMEBARS

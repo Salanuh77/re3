@@ -1,6 +1,18 @@
 Feature: Physics is independent of rendered frames
   The original handling runs at 30 fixed ticks per second while rendering is interpolated.
 
+  Scenario Outline: Live telemetry measures rendering independently of physics
+    When live telemetry observes gameplay rendered at <fps> FPS
+    Then the telemetry reports <fps> render FPS and 30 physics Hz
+    And the average frame time equals 1000 divided by <fps> milliseconds
+
+    Examples:
+      | fps |
+      | 30  |
+      | 60  |
+      | 144 |
+      | 240 |
+
   Scenario Outline: Equal wall time produces equal physics at different display rates
     Given a reference simulation rendered at 30 FPS
     When the simulation runs for 10 seconds at <fps> FPS

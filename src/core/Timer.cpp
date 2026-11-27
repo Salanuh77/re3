@@ -14,6 +14,8 @@ static CFixedStepMilliseconds fixedMilliseconds;
 static bool fixedFrame, inFixedStep, samplingFixedFrame;
 static double fixedFrameSeconds;
 static float renderTimeStep, renderTimeStepNonClipped;
+static double rawFrameSeconds;
+static CFrameTelemetry frameTelemetry;
 #endif
 
 uint32 CTimer::m_snTimeInMilliseconds;
@@ -53,6 +55,7 @@ void CTimer::Initialise(void)
 	fixedClock.Reset();
 	fixedFrame = inFixedStep = samplingFixedFrame = false;
 	fixedMilliseconds.Reset();
+	frameTelemetry.Reset();
 	CFixedRender::Reset();
 #endif
 	debug("Initialising CTimer...\n");
@@ -152,6 +155,7 @@ void CTimer::Update(void)
 	// count frames as if we're running at 30 fps
 #ifdef FIXED_TIME_STEP
 	fixedFrameSeconds = frameTime / 1000.0;
+	rawFrameSeconds = dblUpdInMs / 1000.0;
 	if(!fixedFrame){
 #endif
 	m_LogicalFramesPassed = 0;
@@ -301,6 +305,7 @@ void CTimer::UpdateFixedFrame(void)
 	samplingFixedFrame = true;
 	Update();
 	samplingFixedFrame = false;
+	frameTelemetry.BeginFrame(rawFrameSeconds);
 	renderTimeStep = ms_fTimeStep;
 	renderTimeStepNonClipped = ms_fTimeStepNonClipped;
 }
@@ -309,10 +314,13 @@ bool CTimer::IsFixedStepActive(void) { return fixedFrame; }
 bool CTimer::CanProcessSimulation(void) { return !fixedFrame || inFixedStep; }
 unsigned CTimer::GetFixedSteps(void) { return fixedClock.Advance(fixedFrameSeconds, GetIsPaused()); }
 float CTimer::GetRenderAlpha(void) { return fixedClock.Alpha(); }
+const CFixedStep::Frame &CTimer::GetFixedFrameData(void) { return fixedClock.LastFrame(); }
+const CFrameTelemetry &CTimer::GetFrameTelemetry(void) { return frameTelemetry; }
 
 void CTimer::BeginFixedStep(void)
 {
 	inFixedStep = true;
+	frameTelemetry.RecordTick();
 	m_snPreviousTimeInMilliseconds = m_snTimeInMilliseconds;
 	uint32 milliseconds = fixedMilliseconds.Advance();
 	m_snTimeInMilliseconds += milliseconds;

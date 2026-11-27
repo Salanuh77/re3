@@ -89,6 +89,9 @@ float FramesPerSecond = 30.0f;
 
 bool gbPrintShite = false;
 bool gbModelViewer;
+#ifdef FIXED_TIME_STEP
+bool gbShowPhysicsStats;
+#endif
 #ifdef TIMEBARS
 bool gbShowTimebars;
 #endif
@@ -1547,6 +1550,44 @@ RenderMenus(void)
 	}
 }
 
+#ifdef FIXED_TIME_STEP
+void
+DisplayPhysicsStats(void)
+{
+	if(!gbShowPhysicsStats) return;
+	const CFrameTelemetry &stats = CTimer::GetFrameTelemetry();
+	if(!stats.sampleFrames) return; // Avoid an empty readout before gameplay starts.
+	const CFixedStep::Frame &frame = CTimer::GetFixedFrameData();
+	char lines[9][200];
+	// GTA's font atlas uses '=' and '/' for controller glyphs; spell out the math.
+	sprintf(lines[0], "LIVE RENDER AND PHYSICS TELEMETRY");
+	sprintf(lines[1], "RENDER: %.1f FPS (%u frames DIV %.3fs)", stats.FPS(), stats.sampleFrames, stats.sampleSeconds);
+	sprintf(lines[2], "FRAME: %.3fms (AVG 1000 DIV FPS: %.3fms)", stats.frameSeconds * 1000, stats.AverageFrameMilliseconds());
+	sprintf(lines[3], "PHYSICS: %.2f Hz (%u ticks DIV %.3fs)", stats.PhysicsHz(), stats.sampleTicks, stats.sampleSeconds);
+	sprintf(lines[4], "FIXED dt: 1000 DIV 30: %.3fms RAN %u OF %u", CFixedStep::StepSeconds() * 1000, stats.currentTicks, frame.steps);
+	sprintf(lines[5], "ACC: %.3f PLUS %.3f GIVES %.3fms", frame.before * 1000, frame.input * 1000, (frame.before + frame.input) * 1000);
+	sprintf(lines[6], "REM: ACC - %u x dt - DROP %.3f GIVES %.3fms", frame.steps, frame.DroppedSeconds() * 1000, frame.remainder * 1000);
+	sprintf(lines[7], "ALPHA: %.3f DIV %.3f GIVES %.4f", frame.remainder * 1000, CFixedStep::StepSeconds() * 1000, CTimer::GetRenderAlpha());
+	sprintf(lines[8], "%s TIME SCALE %.2f CATCHUP MAX %u", !CTimer::IsFixedStepActive() ? "LEGACY (ACC INACTIVE)" : CTimer::GetIsPaused() ? "PAUSED" : "FIXED STEP", CTimer::GetTimeScale(), CFixedStep::MaxSteps());
+	CSprite2d::DrawRect(CRect(SCREEN_SCALE_X(8), SCREEN_SCALE_Y(32), SCREEN_SCALE_X(395), SCREEN_SCALE_Y(173)), CRGBA(0, 0, 0, 205));
+	CFont::SetScale(SCREEN_SCALE_X(0.34f), SCREEN_SCALE_Y(0.65f));
+	CFont::SetPropOn();
+	CFont::SetBackgroundOff();
+	CFont::SetFontStyle(FONT_HEADING);
+	CFont::SetCentreOff();
+	CFont::SetRightJustifyOff();
+	CFont::SetJustifyOff();
+	CFont::SetBackGroundOnlyTextOff();
+	CFont::SetWrapx(SCREEN_WIDTH);
+	CFont::SetColor(CRGBA(160, 255, 205, 255));
+	for(unsigned i = 0; i < 9; i++){
+		wchar text[200];
+		AsciiToUnicode(lines[i], text);
+		CFont::PrintString(SCREEN_SCALE_X(14), SCREEN_SCALE_Y(38 + i * 14), text);
+	}
+}
+
+#endif
 void
 Render2dStuffAfterFade(void)
 {
@@ -1556,6 +1597,11 @@ Render2dStuffAfterFade(void)
 #endif
 
 	CHud::DrawAfterFade();
+#ifdef FIXED_TIME_STEP
+	// Flush HUD text before the panel so mission callouts cannot cover its math.
+	if(gbShowPhysicsStats) CFont::DrawFonts();
+	DisplayPhysicsStats();
+#endif
 	CFont::DrawFonts();
 	POP_RENDERGROUP();
 }

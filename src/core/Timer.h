@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef FIXED_TIME_STEP
+#include "FixedStep.h"
+#include "FrameTelemetry.h"
+#endif
+
 class CTimer
 {
 
@@ -57,6 +62,8 @@ public:
 	static void BeginFixedStep(void);
 	static void EndFixedFrame(void);
 	static float GetRenderAlpha(void);
+	static const CFixedStep::Frame &GetFixedFrameData(void);
+	static const CFrameTelemetry &GetFrameTelemetry(void);
 #endif
 	static void Suspend(void);
 	static void Resume(void);

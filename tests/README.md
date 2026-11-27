@@ -46,6 +46,30 @@ It sweeps yaw and pitch, checks matrix round trips, and checks that horizontal
 mouse-look interpolation preserves a level horizon. This catches conversion
 errors that quaternion-only blend tests cannot see.
 
+The telemetry target checks weighted FPS and frame-time calculations, actual
+executed tick counts, slow motion, pause, and the scheduler's accumulator
+equations, including clipped input and dropped catch-up time. Four additional
+Gherkin examples check the displayed rate calculations at 30, 60, 144 and 240 FPS.
+
+## Live in-game telemetry
+
+Set `ShowPhysicsStats=1` under `[General]` in `re3.ini`, or toggle
+**Debug > Physics telemetry** in the debug menu. It is disabled by default.
+The overlay shows live data from the timer and fixed-step scheduler:
+
+* Render FPS = frame-start intervals counted / unscaled elapsed seconds.
+* Average frame time = 1000 / measured FPS; the latest interval is shown separately.
+* Physics Hz = actual executed ticks / the same unscaled elapsed seconds.
+* Accumulator = previous remainder + accepted, time-scaled frame input.
+* New remainder = accumulator - scheduled ticks x fixed dt - dropped catch-up time.
+* Interpolation alpha = new remainder / fixed dt, where dt = 1000 / 30 ms.
+
+Rates refresh over samples of at least half a second. The overlay shows the
+sample counts and duration, executed/scheduled ticks for the current frame,
+time scale, and paused/legacy mode. Dropped time excludes input beyond the
+250 ms input clamp; the accumulator input row shows the accepted amount.
+Video capture FPS is independent of the game's measured render FPS.
+
 ## Full Windows compile
 
 Initialize dependencies with `git submodule update --init --recursive`, then run

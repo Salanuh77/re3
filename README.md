@@ -14,20 +14,32 @@ It also fixes a quaternion conversion error that caused the camera to roll
 during mouse look, and keeps the camera's rendering and visibility state aligned.
 
 Validation includes **69 physics unit checks**, **8,700 camera transform checks**
-against the engine's quaternion code, and **20 Gherkin scenarios**. The
+against the engine's quaternion code, **31 telemetry checks**, and **24 Gherkin scenarios**. The
 [physics workflow](https://github.com/Salanuh77/re3/actions/workflows/physics.yml)
 runs tests on Windows and Linux and compiles the Windows game in Debug and
 Release. See [test and build instructions](tests/README.md) to run them locally.
 
-### Recorded camera playtest
+### Recorded playtest with live frame-rate calculations
 
-[![Watch the mouse-look camera playtest](docs/media/camera-fix-playtest.jpg)](docs/media/camera-fix-playtest.mp4)
+[![Watch driving with live frame-rate and physics telemetry](docs/media/physics-telemetry-playtest.jpg)](docs/media/physics-telemetry-playtest.mp4)
 
-[Watch or download the playtest video](docs/media/camera-fix-playtest.mp4)
-(25 seconds, silent MP4). The clip shows horizontal mouse sweeps and vertical
-look with the frame limiter disabled. Live validation covers camera movement;
-driving and measured FPS performance still need broader testing. The version
-overlay shows the parent commit because recording preceded the fix's commit.
+[Watch or download the telemetry playtest](docs/media/physics-telemetry-playtest.mp4)
+(36 seconds, silent MP4). Driving is recorded with the frame limiter disabled.
+The game's own GUI displays measured render FPS, current and average frame time,
+actual physics tick rate, fixed dt, accumulator input/remainder, dropped catch-up
+time, and interpolation alpha. Frame and tick counts and their sample duration
+are visible alongside the calculations. The video is captured at 30 FPS;
+the in-game counter measures the engine's render-loop rate independently.
+
+Enable the overlay with `ShowPhysicsStats=1` under `[General]` in `re3.ini`, or
+toggle **Debug > Physics telemetry** in the debug menu. See the
+[equations and sampling details](tests/README.md#live-in-game-telemetry).
+This is one live driving sample; repeatable comparisons at capped 30, 60, 144
+and 240 FPS remain part of the playtest checklist. The version overlay shows
+the parent commit because recording preceded the telemetry commit.
+
+The earlier [mouse-look camera recording](docs/media/camera-fix-playtest.mp4)
+is also available.
 
 ## Intro
 

@@ -93,3 +93,22 @@ def camera_look(context, yaw, pitch):
 @then("the camera conversion preserves its viewing direction and horizon")
 def camera_preserved(context):
     assert context.camera_result.returncode == 0, context.camera_result.stderr
+
+
+@when("live telemetry observes gameplay rendered at {fps:d} FPS")
+def telemetry_observes(context, fps):
+    result = subprocess.run(
+        [context.config.userdata["telemetry_probe"], str(fps)],
+        capture_output=True, text=True, check=True)
+    context.telemetry = json.loads(result.stdout)
+
+
+@then("the telemetry reports {fps:d} render FPS and 30 physics Hz")
+def telemetry_rates(context, fps):
+    assert math.isclose(context.telemetry["fps"], fps, rel_tol=1e-5)
+    assert math.isclose(context.telemetry["physics_hz"], 30, rel_tol=1e-5)
+
+
+@then("the average frame time equals 1000 divided by {fps:d} milliseconds")
+def telemetry_frame_time(context, fps):
+    assert math.isclose(context.telemetry["frame_ms"], 1000 / fps, rel_tol=1e-5)

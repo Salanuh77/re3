@@ -8,11 +8,22 @@ class CFixedStep
 {
 	double m_accumulator;
 public:
+	struct Frame {
+		double before, input, remainder;
+		unsigned available, steps;
+		Frame(void) : before(0), input(0), remainder(0), available(0), steps(0) {}
+		double DroppedSeconds(void) const { return (available - steps) * StepSeconds(); }
+	};
+private:
+	Frame m_frame;
+public:
 	static double StepSeconds(void) { return 1.0 / 30.0; }
 	static unsigned MaxSteps(void) { return 5; }
 	CFixedStep(void) : m_accumulator(0.0) {}
-	void Reset(void) { m_accumulator = 0.0; }
+	void Reset(void) { m_accumulator = 0.0; m_frame = Frame(); }
 	unsigned Advance(double elapsed, bool paused = false) {
+		m_frame = Frame();
+		m_frame.before = m_frame.remainder = m_accumulator;
 		if(paused){
 			Reset();
 			return 0;
@@ -20,14 +31,19 @@ public:
 		if(!std::isfinite(elapsed) || elapsed <= 0.0)
 			return 0;
 		// Bound both the input and the work. Drop overdue whole ticks, retain phase.
-		m_accumulator += elapsed < 0.25 ? elapsed : 0.25;
+		m_frame.input = elapsed < 0.25 ? elapsed : 0.25;
+		m_accumulator += m_frame.input;
 		unsigned available = unsigned((m_accumulator + 1.0e-12) / StepSeconds());
 		m_accumulator -= available * StepSeconds();
 		if(m_accumulator < 0.0)
 			m_accumulator = 0.0;
-		return available < MaxSteps() ? available : MaxSteps();
+		m_frame.available = available;
+		m_frame.steps = available < MaxSteps() ? available : MaxSteps();
+		m_frame.remainder = m_accumulator;
+		return m_frame.steps;
 	}
 	float Alpha(void) const { return float(m_accumulator / StepSeconds()); }
+	const Frame &LastFrame(void) const { return m_frame; }
 };
 
 class CFixedStepMilliseconds

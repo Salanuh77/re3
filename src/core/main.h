@@ -74,3 +74,7 @@ extern bool gbDrawVersionText;
 #ifdef NO_MOVIES
 extern bool gbNoMovies;
 #endif
+
+#ifdef FIXED_TIME_STEP
+extern bool gbShowPhysicsStats;
+#endif
