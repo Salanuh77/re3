@@ -5,6 +5,30 @@
 [![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2FGTAmodding%2Fre3%2Fbadge%3Fref%3Dmaster&style=flat)](https://actions-badge.atrox.dev/GTAmodding/re3/goto?ref=master)
 <a href="https://discord.gg/RFNbjsUMGg"><img src="https://img.shields.io/badge/discord-join-7289DA.svg?logo=discord&longCache=true&style=flat" /></a>
 
+## High-FPS physics in this fork
+
+This fork adds a fixed 30 Hz gameplay step to preserve the original handling,
+with an elapsed-time accumulator and interpolated entity and camera transforms
+between simulation ticks. Catch-up work is capped to keep long stalls bounded.
+It also fixes a quaternion conversion error that caused the camera to roll
+during mouse look, and keeps the camera's rendering and visibility state aligned.
+
+Validation includes **69 physics unit checks**, **8,700 camera transform checks**
+against the engine's quaternion code, and **20 Gherkin scenarios**. The
+[physics workflow](https://github.com/Salanuh77/re3/actions/workflows/physics.yml)
+runs tests on Windows and Linux and compiles the Windows game in Debug and
+Release. See [test and build instructions](tests/README.md) to run them locally.
+
+### Recorded camera playtest
+
+[![Watch the mouse-look camera playtest](docs/media/camera-fix-playtest.jpg)](docs/media/camera-fix-playtest.mp4)
+
+[Watch or download the playtest video](docs/media/camera-fix-playtest.mp4)
+(25 seconds, silent MP4). The clip shows horizontal mouse sweeps and vertical
+look with the frame limiter disabled. Live validation covers camera movement;
+driving and measured FPS performance still need broader testing. The version
+overlay shows the parent commit because recording preceded the fix's commit.
+
 ## Intro
 
 In this repository you'll find the fully reversed source code for GTA III ([master](https://github.com/GTAmodding/re3/tree/master/) branch) and GTA VC ([miami](https://github.com/GTAmodding/re3/tree/miami/) branch).
@@ -76,7 +100,7 @@ Some of them can be toggled at runtime, some cannot.
 
 The following things would be nice to have/do:
 
-* Fix physics for high FPS
+* Expand live physics regression coverage for driving, braking, suspension and jumping at 30, 60, 144 and 240 FPS
 * Improve performance on lower end devices, especially the OpenGL layer on the Raspberry Pi (if you have experience with this, please get in touch)
 * Compare code with PS2 code (tedious, no good decompiler)
 * [PS2 port](https://github.com/GTAmodding/re3/wiki/PS2-port)
@@ -100,7 +124,7 @@ Sorry for the inconvenience.
 
 When using premake, you may want to point GTA_III_RE_DIR environment variable to GTA3 root folder if you want the executable to be moved there via post-build script.
 
-Clone the repository with `git clone --recursive https://github.com/GTAmodding/re3.git`. Then `cd re3` into the cloned repository.
+Clone this fork's physics branch with `git clone --recursive --branch Salanuh77/high-fps-physics https://github.com/Salanuh77/re3.git`. Then `cd re3` into the cloned repository.
 
 <details><summary>Linux Premake</summary>
 
