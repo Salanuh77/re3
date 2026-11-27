@@ -144,16 +144,25 @@ For Linux using premake, proceed: [Building on Linux](https://github.com/GTAmodd
 
 </details>
 
-<details><summary>Linux Conan</summary>
+<details><summary>Conan 2 + CMake (Linux, macOS and Windows)</summary>
 
-Install python and conan, and then run build.
+Install Python, CMake and a C++ compiler, initialize the submodules, then use the
+Conan 2 dependency recipe used by CI. It builds the pinned vendored librw with
+OpenAL and GLFW; the historical root recipe targets Conan 1.
+
+```sh
+python -m pip install "conan>=2.2,<3" "cmake>=3.30,<4"
+conan profile detect
+conan install .github/conanfile.py --output-folder build/deps --build=missing -s build_type=RelWithDebInfo
+cmake -S . -B build/game -DCMAKE_TOOLCHAIN_FILE="$PWD/build/deps/conan_toolchain.cmake" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build/game --config RelWithDebInfo --parallel 2
+cpack --config build/game/CPackConfig.cmake -C RelWithDebInfo
 ```
-conan export vendor/librw librw/master@
-mkdir build
-cd build
-conan install .. re3/master@ -if build -o re3:audio=openal -o librw:platform=gl3 -o librw:gl3_gfxlib=glfw --build missing -s re3:build_type=RelWithDebInfo -s librw:build_type=RelWithDebInfo
-conan build .. -if build -bf build -pf package
-```
+
+For D3D9 on Windows, add `-o "&:platform=D3D9"` to `conan install`.
+On Linux, install the required system development packages, or allow Conan's
+package manager with `-c tools.system.package_manager:mode=install
+-c tools.system.package_manager:sudo=True` as CI does.
 </details>
 
 <details><summary>MacOS Premake</summary>

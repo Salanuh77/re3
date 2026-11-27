@@ -4,24 +4,29 @@ on:
   push:
   release:
     types: published
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build-nintendo-switch:
     runs-on: ubuntu-latest
     container: devkitpro/devkita64:latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          submodules: 'true'
+          submodules: recursive
       - name: "Build files"
         run: |
-          /opt/devkitpro/portlibs/switch/bin/aarch64-none-elf-cmake -S. -Bbuild -DRE3_AUDIO=OAL -DLIBRW_PLATFORM=GL3 -DLIBRW_GL3_GFXLIB=GLFW -DRE3_WITH_OPUS=False -DRE3_VENDORED_LIBRW=True -DRE3_INSTALL=True
-          cmake --build build --parallel
+          /opt/devkitpro/portlibs/switch/bin/aarch64-none-elf-cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DRE3_AUDIO=OAL -DLIBRW_PLATFORM=GL3 -DLIBRW_GL3_GFXLIB=GLFW -DRE3_WITH_OPUS=False -DRE3_VENDORED_LIBRW=True -DRE3_INSTALL=True
+          cmake --build build --parallel 2
       - name: "Create binary package (cpack)"
         working-directory: ./build
         run: |
           cpack
       - name: "Archive binary package (github artifacts)"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: "switch-gl3"
           path: build/*.zip
